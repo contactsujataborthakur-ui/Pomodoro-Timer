@@ -316,7 +316,54 @@
     }
     
     /* ========================================
-       LAYER 9: RESPONSIVE DESIGN
+       LAYER 9: SESSION TRACKER
+       ======================================== */
+    
+    .session-tracker {
+      margin-top: var(--space-lg);
+      padding: var(--space-md);
+      background: rgba(45, 95, 93, 0.05);
+      border-radius: 16px;
+      border: 2px solid rgba(45, 95, 93, 0.1);
+    }
+    
+    .session-count {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-family: var(--font-body);
+    }
+    
+    .tomato-icon {
+      font-size: 2rem;
+      /* Subtle bounce animation on update */
+      animation: iconPulse 0.6s ease;
+    }
+    
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    
+    .count-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      font-family: var(--font-display);
+      min-width: 60px;
+      text-align: center;
+    }
+    
+    .count-label {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      text-transform: lowercase;
+      letter-spacing: 0.05em;
+    }
+    
+    /* ========================================
+       LAYER 10: RESPONSIVE DESIGN
        ======================================== */
     
     /* Adapt for mobile screens */
@@ -359,6 +406,15 @@
     <!-- Progress bar -->
     <div class="progress-bar">
       <div class="progress-fill" id="progressFill"></div>
+    </div>
+    
+    <!-- NEW: Session Counter Display -->
+    <div class="session-tracker">
+      <div class="session-count" id="sessionCount">
+        <span class="tomato-icon">🍅</span>
+        <span class="count-number">0</span>
+        <span class="count-label">sessions today</span>
+      </div>
     </div>
     
     <!-- Control buttons -->
@@ -405,6 +461,10 @@
         this.totalTime = this.workDuration;
         this.intervalId = null;
         
+        // NEW: Session tracking properties
+        this.sessionsToday = 0;
+        this.currentDate = new Date().toDateString();
+        
         // Get references to DOM elements
         // DOM = Document Object Model (the HTML structure in memory)
         this.timeDisplay = document.getElementById('timeDisplay');
@@ -415,6 +475,7 @@
         this.progressFill = document.getElementById('progressFill');
         this.workInput = document.getElementById('workInput');
         this.breakInput = document.getElementById('breakInput');
+        this.sessionCountNumber = document.querySelector('.count-number');
         
         // Bind event listeners
         // "Bind" = connect user actions to our functions
@@ -422,6 +483,9 @@
         this.resetBtn.addEventListener('click', () => this.reset());
         this.workInput.addEventListener('change', (e) => this.updateWorkDuration(e));
         this.breakInput.addEventListener('change', (e) => this.updateBreakDuration(e));
+        
+        // NEW: Load saved session data
+        this.loadSessionData();
         
         // Initial display update
         this.updateDisplay();
@@ -473,6 +537,11 @@
         // Play completion notification
         this.playSound();
         
+        // NEW: If completing a work session, increment counter
+        if (this.isWorkSession) {
+          this.incrementSessionCount();
+        }
+        
         // Switch between work and break
         this.isWorkSession = !this.isWorkSession;
         
@@ -519,10 +588,81 @@
         // Update progress bar
         const progress = ((this.totalTime - this.currentTime) / this.totalTime) * 100;
         this.progressFill.style.width = `${progress}%`;
+        
+        // NEW: Update session counter display
+        this.sessionCountNumber.textContent = this.sessionsToday;
       }
       
       // ============================================
-      // LAYER 4: SETTINGS & CONFIGURATION
+      // LAYER 4A: SESSION TRACKING WITH LOCALSTORAGE
+      // This is where we persist data!
+      // ============================================
+      
+      loadSessionData() {
+        // Try to get saved data from localStorage
+        const savedData = localStorage.getItem('pomodoroSessions');
+        
+        if (savedData) {
+          // Parse the JSON string back into an object
+          const data = JSON.parse(savedData);
+          
+          // Check if the saved date matches today
+          const today = new Date().toDateString();
+          
+          if (data.date === today) {
+            // Same day - restore the count
+            this.sessionsToday = data.count;
+            console.log('📊 Loaded sessions:', this.sessionsToday);
+          } else {
+            // New day - reset to 0
+            this.sessionsToday = 0;
+            this.saveSessionData();
+            console.log('🌅 New day! Sessions reset to 0');
+          }
+        } else {
+          // No saved data - first time user
+          this.sessionsToday = 0;
+          this.saveSessionData();
+          console.log('👋 Welcome! Starting fresh.');
+        }
+        
+        this.currentDate = new Date().toDateString();
+      }
+      
+      saveSessionData() {
+        // Create an object with our data
+        const data = {
+          count: this.sessionsToday,
+          date: this.currentDate
+        };
+        
+        // Convert object to JSON string and save
+        localStorage.setItem('pomodoroSessions', JSON.stringify(data));
+        console.log('💾 Saved sessions:', this.sessionsToday);
+      }
+      
+      incrementSessionCount() {
+        // Increment the counter
+        this.sessionsToday++;
+        
+        // Save to localStorage
+        this.saveSessionData();
+        
+        // Update the display
+        this.updateDisplay();
+        
+        // Add celebration animation
+        const icon = document.querySelector('.tomato-icon');
+        icon.style.animation = 'none';
+        setTimeout(() => {
+          icon.style.animation = 'iconPulse 0.6s ease';
+        }, 10);
+        
+        console.log('🎉 Session completed! Total today:', this.sessionsToday);
+      }
+      
+      // ============================================
+      // LAYER 5: SETTINGS & CONFIGURATION
       // ============================================
       
       updateWorkDuration(e) {
@@ -546,7 +686,7 @@
       }
       
       // ============================================
-      // LAYER 5: NOTIFICATIONS & FEEDBACK
+      // LAYER 6: NOTIFICATIONS & FEEDBACK
       // ============================================
       
       notify() {
@@ -580,7 +720,7 @@
     }
     
     // ============================================
-    // LAYER 6: INITIALIZATION
+    // LAYER 7: INITIALIZATION
     // This runs when the page loads
     // ============================================
     
