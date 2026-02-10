@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow Timer - Pomodoro</title>
+  
+  <!-- FONT LAYER: Typography sets the vibe -->
+  <!-- We're using Google Fonts - a free font library -->
+  <!-- Playfair Display = elegant, serif for headlines -->
+  <!-- DM Sans = clean, modern for body text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ========================================
+       LAYER 1: RESET & FOUNDATION
+       ======================================== */
+    
+    /* This removes browser defaults so we start from zero */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box; /* Makes width/height calculations predictable */
+    }
+    
+    /* ========================================
+       LAYER 2: CSS VARIABLES (Design Tokens)
+       ======================================== */
+    
+    /* Think of these as your brand's DNA - change once, affects everywhere */
+    :root {
+      /* Color Palette - Inspired by zen gardens and sunrise */
+      --color-primary: #2D5F5D;      /* Deep teal - grounding */
+      --color-accent: #F4A261;       /* Warm orange - energy */
+      --color-break: #9B72AA;        /* Soft purple - rest */
+      --color-bg-light: #FDF8F3;     /* Warm off-white */
+      --color-text-dark: #1A1A1A;
+      --color-text-muted: #6B6B6B;
+      
+      /* Spacing System - Consistent rhythm */
+      --space-xs: 8px;
+      --space-sm: 16px;
+      --space-md: 24px;
+      --space-lg: 48px;
+      --space-xl: 96px;
+      
+      /* Typography Scale */
+      --font-display: 'Playfair Display', serif;
+      --font-body: 'DM Sans', sans-serif;
+      
+      /* Animation Timing - This makes movements feel natural */
+      --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-bounce: 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    /* ========================================
+       LAYER 3: BASE LAYOUT
+       ======================================== */
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-light);
+      color: var(--color-text-dark);
+      min-height: 100vh; /* Full viewport height */
+      
+      /* Flexbox - Modern layout system */
+      /* Think of it as: "arrange children in a direction, center them" */
+      display: flex;
+      justify-content: center; /* Center horizontally */
+      align-items: center;     /* Center vertically */
+      
+      /* Subtle animated gradient background */
+      background: linear-gradient(135deg, 
+        #FDF8F3 0%, 
+        #F5E6D3 50%, 
+        #E8D5C4 100%
+      );
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
+    }
+    
+    /* Background animation - creates subtle movement */
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    /* ========================================
+       LAYER 4: COMPONENT STRUCTURE
+       ======================================== */
+    
+    /* Main container - holds everything */
+    .timer-container {
+      text-align: center;
+      padding: var(--space-xl);
+      max-width: 500px;
+      width: 90%;
+      
+      /* Entrance animation */
+      animation: fadeInUp 0.8s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Header styling */
+    h1 {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      color: var(--color-primary);
+      margin-bottom: var(--space-md);
+      letter-spacing: -0.02em; /* Tighter letter spacing for elegance */
+    }
+    
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--space-lg);
+    }
+    
+    /* ========================================
+       LAYER 5: TIMER DISPLAY (The Hero Element)
+       ======================================== */
+    
+    .timer-circle {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      margin: 0 auto var(--space-lg);
+      
+      /* Creates circular shape */
+      border-radius: 50%;
+      
+      /* Layered shadows for depth - key to "vibe" */
+      box-shadow: 
+        0 10px 40px rgba(45, 95, 93, 0.1),
+        0 20px 80px rgba(45, 95, 93, 0.08),
+        inset 0 2px 8px rgba(255, 255, 255, 0.6);
+      
+      background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+      
+      /* Layout for centering the time */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      
+      /* Smooth transitions when state changes */
+      transition: all var(--transition-smooth);
+    }
+    
+    /* When timer is active, add pulsing effect */
+    .timer-circle.active {
+      box-shadow: 
+        0 10px 50px rgba(244, 162, 97, 0.3),
+        0 20px 100px rgba(244, 162, 97, 0.2),
+        inset 0 2px 8px rgba(255, 255, 255, 0.6);
+    }
+    
+    /* The time display */
+    .time-display {
+      font-family: var(--font-display);
+      font-size: 5rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      line-height: 1;
+      transition: color var(--transition-smooth);
+    }
+    
+    /* Mode indicator (Work/Break) */
+    .mode-label {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-top: var(--space-sm);
+      opacity: 0.7;
+    }
+    
+    /* ========================================
+       LAYER 6: CONTROLS (Interactive Elements)
+       ======================================== */
+    
+    .controls {
+      display: flex;
+      gap: var(--space-sm);
+      justify-content: center;
+      margin-bottom: var(--space-md);
+    }
+    
+    /* Button base styles */
+    button {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-md);
+      border: none;
+      border-radius: 100px; /* Pill shape */
+      cursor: pointer;
+      
+      /* Transitions make interactions feel smooth */
+      transition: all var(--transition-smooth);
+      
+      /* Prevents text selection on clicks */
+      user-select: none;
+    }
+    
+    /* Primary button (Start/Pause) */
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+      padding: var(--space-sm) var(--space-lg);
+      box-shadow: 0 4px 20px rgba(45, 95, 93, 0.3);
+    }
+    
+    .btn-primary:hover {
+      background: #234948;
+      transform: translateY(-2px); /* Subtle lift on hover */
+      box-shadow: 0 6px 30px rgba(45, 95, 93, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0); /* Pressed effect */
+    }
+    
+    /* Secondary button (Reset) */
+    .btn-secondary {
+      background: rgba(45, 95, 93, 0.1);
+      color: var(--color-primary);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(45, 95, 93, 0.2);
+    }
+    
+    /* ========================================
+       LAYER 7: SETTINGS PANEL
+       ======================================== */
+    
+    .settings {
+      margin-top: var(--space-lg);
+      padding-top: var(--space-lg);
+      border-top: 1px solid rgba(45, 95, 93, 0.1);
+    }
+    
+    .settings h3 {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--space-md);
+    }
+    
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .setting-label {
+      font-size: 0.9rem;
+      color: var(--color-text-dark);
+    }
+    
+    /* Custom number input styling */
+    input[type="number"] {
+      font-family: var(--font-body);
+      width: 70px;
+      padding: 8px 12px;
+      border: 2px solid rgba(45, 95, 93, 0.2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--color-text-dark);
+      text-align: center;
+      transition: border-color var(--transition-smooth);
+    }
+    
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    
+    /* ========================================
+       LAYER 8: PROGRESS INDICATOR
+       ======================================== */
+    
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(45, 95, 93, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: var(--space-md);
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+      border-radius: 2px;
+      transition: width 1s linear;
+      width: 0%;
+    }
+    
+    /* ========================================
+       LAYER 9: RESPONSIVE DESIGN
+       ======================================== */
+    
+    /* Adapt for mobile screens */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .timer-circle {
+        width: 280px;
+        height: 280px;
+      }
+      
+      .time-display {
+        font-size: 4rem;
+      }
+      
+      .timer-container {
+        padding: var(--space-md);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ========================================
+       HTML STRUCTURE
+       This is what the browser renders
+       ======================================== -->
+  
+  <div class="timer-container">
+    <h1>Flow Timer</h1>
+    <p class="subtitle">Focus • Create • Rest</p>
+    
+    <!-- Main timer display -->
+    <div id="timerCircle" class="timer-circle">
+      <div class="time-display" id="timeDisplay">25:00</div>
+      <div class="mode-label" id="modeLabel">Work Session</div>
+    </div>
+    
+    <!-- Progress bar -->
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    
+    <!-- Control buttons -->
+    <div class="controls">
+      <button class="btn-primary" id="startBtn">Start</button>
+      <button class="btn-secondary" id="resetBtn">Reset</button>
+    </div>
+    
+    <!-- Settings panel -->
+    <div class="settings">
+      <h3>Timer Settings</h3>
+      <div class="setting-row">
+        <span class="setting-label">Work Duration</span>
+        <input type="number" id="workInput" value="25" min="1" max="60"> min
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Break Duration</span>
+        <input type="number" id="breakInput" value="5" min="1" max="30"> min
+      </div>
+    </div>
+  </div>
+  
+  <!-- ========================================
+       JAVASCRIPT LOGIC
+       This makes everything interactive
+       ======================================== -->
+  
+  <script>
+    // ============================================
+    // LAYER 1: STATE MANAGEMENT
+    // "State" = the current condition of our app
+    // ============================================
+    
+    // The Timer class encapsulates all timer logic
+    // Think of it as a blueprint for timer behavior
+    class PomodoroTimer {
+      constructor() {
+        // Initialize state variables
+        this.workDuration = 25 * 60; // Convert minutes to seconds
+        this.breakDuration = 5 * 60;
+        this.currentTime = this.workDuration;
+        this.isRunning = false;
+        this.isWorkSession = true;
+        this.totalTime = this.workDuration;
+        this.intervalId = null;
+        
+        // Get references to DOM elements
+        // DOM = Document Object Model (the HTML structure in memory)
+        this.timeDisplay = document.getElementById('timeDisplay');
+        this.modeLabel = document.getElementById('modeLabel');
+        this.startBtn = document.getElementById('startBtn');
+        this.resetBtn = document.getElementById('resetBtn');
+        this.timerCircle = document.getElementById('timerCircle');
+        this.progressFill = document.getElementById('progressFill');
+        this.workInput = document.getElementById('workInput');
+        this.breakInput = document.getElementById('breakInput');
+        
+        // Bind event listeners
+        // "Bind" = connect user actions to our functions
+        this.startBtn.addEventListener('click', () => this.toggleTimer());
+        this.resetBtn.addEventListener('click', () => this.reset());
+        this.workInput.addEventListener('change', (e) => this.updateWorkDuration(e));
+        this.breakInput.addEventListener('change', (e) => this.updateBreakDuration(e));
+        
+        // Initial display update
+        this.updateDisplay();
+      }
+      
+      // ============================================
+      // LAYER 2: CORE TIMER LOGIC
+      // ============================================
+      
+      toggleTimer() {
+        if (this.isRunning) {
+          this.pause();
+        } else {
+          this.start();
+        }
+      }
+      
+      start() {
+        this.isRunning = true;
+        this.startBtn.textContent = 'Pause';
+        this.timerCircle.classList.add('active');
+        
+        // setInterval runs a function repeatedly every X milliseconds
+        // 1000ms = 1 second
+        this.intervalId = setInterval(() => {
+          this.tick();
+        }, 1000);
+      }
+      
+      pause() {
+        this.isRunning = false;
+        this.startBtn.textContent = 'Resume';
+        this.timerCircle.classList.remove('active');
+        clearInterval(this.intervalId); // Stop the repeating function
+      }
+      
+      tick() {
+        // This runs every second when timer is active
+        if (this.currentTime > 0) {
+          this.currentTime--;
+          this.updateDisplay();
+        } else {
+          // Timer finished - switch modes
+          this.complete();
+        }
+      }
+      
+      complete() {
+        // Play completion notification
+        this.playSound();
+        
+        // Switch between work and break
+        this.isWorkSession = !this.isWorkSession;
+        
+        if (this.isWorkSession) {
+          this.currentTime = this.workDuration;
+          this.totalTime = this.workDuration;
+          this.modeLabel.textContent = 'Work Session';
+        } else {
+          this.currentTime = this.breakDuration;
+          this.totalTime = this.breakDuration;
+          this.modeLabel.textContent = 'Break Time';
+        }
+        
+        this.updateDisplay();
+        
+        // Show browser notification
+        this.notify();
+      }
+      
+      reset() {
+        this.pause();
+        this.isWorkSession = true;
+        this.currentTime = this.workDuration;
+        this.totalTime = this.workDuration;
+        this.modeLabel.textContent = 'Work Session';
+        this.startBtn.textContent = 'Start';
+        this.updateDisplay();
+      }
+      
+      // ============================================
+      // LAYER 3: UI UPDATE LOGIC
+      // This is where state becomes visual
+      // ============================================
+      
+      updateDisplay() {
+        // Convert seconds to MM:SS format
+        const minutes = Math.floor(this.currentTime / 60);
+        const seconds = this.currentTime % 60;
+        
+        // padStart ensures we always show 2 digits (05 instead of 5)
+        const formatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        this.timeDisplay.textContent = formatted;
+        
+        // Update progress bar
+        const progress = ((this.totalTime - this.currentTime) / this.totalTime) * 100;
+        this.progressFill.style.width = `${progress}%`;
+      }
+      
+      // ============================================
+      // LAYER 4: SETTINGS & CONFIGURATION
+      // ============================================
+      
+      updateWorkDuration(e) {
+        const minutes = parseInt(e.target.value);
+        this.workDuration = minutes * 60;
+        if (this.isWorkSession && !this.isRunning) {
+          this.currentTime = this.workDuration;
+          this.totalTime = this.workDuration;
+          this.updateDisplay();
+        }
+      }
+      
+      updateBreakDuration(e) {
+        const minutes = parseInt(e.target.value);
+        this.breakDuration = minutes * 60;
+        if (!this.isWorkSession && !this.isRunning) {
+          this.currentTime = this.breakDuration;
+          this.totalTime = this.breakDuration;
+          this.updateDisplay();
+        }
+      }
+      
+      // ============================================
+      // LAYER 5: NOTIFICATIONS & FEEDBACK
+      // ============================================
+      
+      notify() {
+        // Check if browser supports notifications
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Flow Timer', {
+            body: this.isWorkSession ? 'Time to focus! 🎯' : 'Time to rest! 🌿',
+            icon: '⏱️'
+          });
+        }
+      }
+      
+      playSound() {
+        // Web Audio API - creates a gentle tone
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800; // Frequency in Hz
+        oscillator.type = 'sine'; // Smooth sine wave
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+      }
+    }
+    
+    // ============================================
+    // LAYER 6: INITIALIZATION
+    // This runs when the page loads
+    // ============================================
+    
+    // Wait for HTML to fully load before running JavaScript
+    document.addEventListener('DOMContentLoaded', () => {
+      // Create new timer instance
+      const timer = new PomodoroTimer();
+      
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    });
+  </script>
+</body>
+</html>
